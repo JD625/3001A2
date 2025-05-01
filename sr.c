@@ -125,12 +125,14 @@ void A_input(struct pkt packet)
     }
 
     stoptimer(A);
-    for (int i = 0; i < SEQSPACE; i++) {
-      if (sr_buffer[i].sent && !sr_buffer[i].acked) {
-        starttimer(A, RTT);
-        break;
-      }
-    }
+    for (int i = sr_base; i < sr_base + WINDOWSIZE; i++) {
+    int idx = i % SEQSPACE;
+    if (sr_buffer[idx].sent && !sr_buffer[idx].acked) {
+    starttimer(A, RTT);
+    break;
+  }
+}
+
   }
   else 
     if (TRACE > 0)
@@ -138,25 +140,29 @@ void A_input(struct pkt packet)
 }
 
 /* called when A's timer goes off */
-void A_timerinterrupt(void)
-{
+void A_timerinterrupt(void) {
   if (TRACE > 0)
-    printf("----A: time out,resend packets!\n");
+      printf("----A: time out,resend packets!\n");
 
   double now = get_sim_time();
+
   for (int i = 0; i < SEQSPACE; i++) {
-    if (sr_buffer[i].sent && !sr_buffer[i].acked && 
-        (now - sr_buffer[i].timer_start) >= RTT) {
-      if (TRACE > 0)
-        printf ("---A: resending packet %d\n", sr_buffer[i].packet.seqnum);
-      tolayer3(A, sr_buffer[i].packet);
-      sr_buffer[i].timer_start = now;
-      packets_resent++;
-      starttimer(A, RTT);
-      break;
-    }
+      if (sr_buffer[i].sent && !sr_buffer[i].acked &&
+          (now - sr_buffer[i].timer_start) >= RTT) {
+
+          if (TRACE > 0)
+              printf("---A: resending packet %d\n", sr_buffer[i].packet.seqnum);
+
+          tolayer3(A, sr_buffer[i].packet);
+          sr_buffer[i].timer_start = now;
+          packets_resent++;
+      }
   }
-}       
+
+  starttimer(A, RTT);
+}
+
+    
 
 
 
@@ -165,12 +171,12 @@ void A_timerinterrupt(void)
 void A_init(void)
 {
   /* initialise A's window, buffer and sequence number */
-  sr_base = 0;
-  sr_nextseq = 0;
-  for (int i = 0; i < SEQSPACE; i++) {
+    sr_base = 0;
+    sr_nextseq = 0;
+    for (int i = 0; i < MAX_SEQ; i++) {
     sr_buffer[i].sent = false;
     sr_buffer[i].acked = false;
-  }
+}
 }
 
 
@@ -230,8 +236,9 @@ void B_input(struct pkt packet)
 void B_init(void)
 {
   sr_expect = 0;
-  for (int i = 0; i < SEQSPACE; i++)
+for (int i = 0; i < MAX_SEQ; i++) {
     sr_recvd[i] = false;
+}
 }
 
 /******************************************************************************
