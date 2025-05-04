@@ -124,14 +124,16 @@ void B_input(struct pkt packet)
   int i;
 
   if  ( (!IsCorrupted(packet))  && (packet.seqnum == expectedseqnum) ) {
+    if (TRACE > 0)
+      printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
     packets_received++;
+    tolayer5(B, packet.payload);
     sendpkt.acknum = expectedseqnum;
     expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
   } else {
-    if (expectedseqnum == 0)
-      sendpkt.acknum = SEQSPACE - 1;
-    else
-      sendpkt.acknum = expectedseqnum - 1;
+    if (TRACE > 0)
+      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+    sendpkt.acknum = expectedseqnum - 1;
   }
 
   sendpkt.seqnum = B_nextseqnum;
@@ -143,6 +145,7 @@ void B_input(struct pkt packet)
   sendpkt.checksum = ComputeChecksum(sendpkt);
   tolayer3 (B, sendpkt);
 }
+
 
 void B_init(void)
 {
