@@ -1,0 +1,10 @@
+gcc -Wall -std=c99 -pedantic -o sr emulator.c sr.c
+
+./sr
+
+
+git
+
+git add sr.c
+git commit -m "your text"
+git push
