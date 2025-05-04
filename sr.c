@@ -81,9 +81,10 @@ void A_input(struct pkt packet)
         new_ACKs++;
 
         if (packet.acknum >= seqfirst)
-          ackcount = packet.acknum + 1 - seqfirst;
-        else
-          ackcount = SEQSPACE - seqfirst + packet.acknum;
+        ackcount = packet.acknum - seqfirst; 
+      else
+        ackcount = SEQSPACE - seqfirst + packet.acknum;
+      
 
         windowfirst = (windowfirst + ackcount) % WINDOWSIZE;
 
