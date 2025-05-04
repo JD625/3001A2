@@ -4,24 +4,6 @@
 #include "emulator.h"
 #include "gbn.h"
 
-/* ******************************************************************
-   Go Back N protocol.  Adapted from J.F.Kurose
-   ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: VERSION 1.2
-
-   Network properties:
-   - one way network delay averages five time units (longer if there
-   are other messages in the channel for GBN), but can be larger
-   - packets can be corrupted (either the header or the data portion)
-   or lost, according to user-defined probabilities
-   - packets will be delivered in the order in which they were sent
-   (although some can be lost).
-
-   Modifications:
-   - removed bidirectional GBN code and other code not used by prac.
-   - fixed C style to adhere to current programming style
-   - added GBN implementation
-**********************************************************************/
-
 #define RTT  16.0
 #define WINDOWSIZE 6
 #define SEQSPACE 7
@@ -59,9 +41,6 @@ void A_output(struct msg message)
   int i;
 
   if ( windowcount < WINDOWSIZE) {
-    if (TRACE > 1)
-      printf("----A: New message arrives, send window is not full, send new messge to layer3!\n");
-
     sendpkt.seqnum = A_nextseqnum;
     sendpkt.acknum = NOTINUSE;
     for ( i=0; i<20 ; i++ )
@@ -72,8 +51,6 @@ void A_output(struct msg message)
     buffer[windowlast] = sendpkt;
     windowcount++;
 
-    if (TRACE > 0)
-      printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
 
     if (windowcount == 1)
@@ -81,8 +58,6 @@ void A_output(struct msg message)
 
     A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
   } else {
-    if (TRACE > 0)
-      printf("----A: New message arrives, send window is full\n");
     window_full++;
   }
 }
@@ -93,8 +68,6 @@ void A_input(struct pkt packet)
   int i;
 
   if (!IsCorrupted(packet)) {
-    if (TRACE > 0)
-      printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     total_ACKs_received++;
 
     if (windowcount != 0) {
@@ -103,8 +76,6 @@ void A_input(struct pkt packet)
       if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
           ((seqfirst > seqlast) && (packet.acknum >= seqfirst || packet.acknum <= seqlast))) {
 
-        if (TRACE > 0)
-          printf("----A: ACK %d is not a duplicate\n",packet.acknum);
         new_ACKs++;
 
         if (packet.acknum >= seqfirst)
@@ -121,23 +92,15 @@ void A_input(struct pkt packet)
         if (windowcount > 0)
           starttimer(A, RTT);
       }
-    } else if (TRACE > 0)
-      printf ("----A: duplicate ACK received, do nothing!\n");
-  } else if (TRACE > 0)
-    printf ("----A: corrupted ACK is received, do nothing!\n");
+    }
+  }
 }
 
 void A_timerinterrupt(void)
 {
   int i;
 
-  if (TRACE > 0)
-    printf("----A: time out,resend packets!\n");
-
   for(i=0; i<windowcount; i++) {
-    if (TRACE > 0)
-      printf ("---A: resending packet %d\n", (buffer[(windowfirst+i) % WINDOWSIZE]).seqnum);
-
     tolayer3(A,buffer[(windowfirst+i) % WINDOWSIZE]);
     packets_resent++;
     if (i==0) starttimer(A,RTT);
@@ -161,15 +124,10 @@ void B_input(struct pkt packet)
   int i;
 
   if  ( (!IsCorrupted(packet))  && (packet.seqnum == expectedseqnum) ) {
-    if (TRACE > 0)
-      printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
     packets_received++;
-    tolayer5(B, packet.payload);
     sendpkt.acknum = expectedseqnum;
     expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
   } else {
-    if (TRACE > 0)
-      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
     if (expectedseqnum == 0)
       sendpkt.acknum = SEQSPACE - 1;
     else
