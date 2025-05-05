@@ -41,6 +41,9 @@ void A_output(struct msg message)
   int i;
 
   if ( windowcount < WINDOWSIZE) {
+    if (TRACE > 1)
+      printf("----A: New message arrives, send window is not full, send new messge to layer3!\n");
+
     sendpkt.seqnum = A_nextseqnum;
     sendpkt.acknum = NOTINUSE;
     for ( i=0; i<20 ; i++ )
@@ -51,6 +54,8 @@ void A_output(struct msg message)
     buffer[windowlast] = sendpkt;
     windowcount++;
 
+    if (TRACE > 0)
+      printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
 
     if (windowcount == 1)
@@ -58,6 +63,8 @@ void A_output(struct msg message)
 
     A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
   } else {
+    if (TRACE > 0)
+      printf("----A: New message arrives, send window is full\n");
     window_full++;
   }
 }
@@ -71,7 +78,6 @@ void A_input(struct pkt packet)
     if (TRACE > 0)
       printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     total_ACKs_received++;
-
     if (windowcount != 0) {
       int seqfirst = buffer[windowfirst].seqnum;
       int seqlast = buffer[windowlast].seqnum;
@@ -102,7 +108,6 @@ void A_input(struct pkt packet)
     printf ("----A: corrupted ACK is received, do nothing!\n");
 }
 
-
 void A_timerinterrupt(void)
 {
   int i;
@@ -110,24 +115,15 @@ void A_timerinterrupt(void)
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
 
-  for(i = 0; i <= windowcount; i++) {  
+  for(i=0; i<windowcount; i++) {
     if (TRACE > 0)
-      printf ("---A: resending packet %d\n", (buffer[(windowfirst + i) % WINDOWSIZE]).seqnum);
+      printf ("---A: resending packet %d\n", (buffer[(windowfirst+i) % WINDOWSIZE]).seqnum);
 
-    buffer[(windowfirst + i) % WINDOWSIZE].checksum = ComputeChecksum(buffer[i]);  
-
-    tolayer3(A, buffer[(windowfirst + i) % WINDOWSIZE]);
+    tolayer3(A,buffer[(windowfirst+i) % WINDOWSIZE]);
     packets_resent++;
-
-    if (i == 0) {
-      A_nextseqnum = buffer[windowfirst].seqnum;  
-      starttimer(A, RTT);
-    }
+    if (i==0) starttimer(A,RTT);
   }
 }
-
-
-
 
 void A_init(void)
 {
@@ -170,7 +166,6 @@ void B_input(struct pkt packet)
   sendpkt.checksum = ComputeChecksum(sendpkt);
   tolayer3 (B, sendpkt);
 }
-  
 
 void B_init(void)
 {
