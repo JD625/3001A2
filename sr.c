@@ -110,15 +110,23 @@ void A_timerinterrupt(void)
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
 
-  for(i=0; i<=windowcount; i++) { 
+  for(i = 0; i <= windowcount; i++) {  
     if (TRACE > 0)
-      printf ("---A: resending packet %d\n", (buffer[(windowfirst+i) % WINDOWSIZE]).seqnum);
+      printf ("---A: resending packet %d\n", (buffer[(windowfirst + i) % WINDOWSIZE]).seqnum);
 
-    tolayer3(A,buffer[(windowfirst+i) % WINDOWSIZE]);
+    buffer[(windowfirst + i) % WINDOWSIZE].checksum = ComputeChecksum(buffer[i]);  
+
+    tolayer3(A, buffer[(windowfirst + i) % WINDOWSIZE]);
     packets_resent++;
-    if (i==0) starttimer(A,RTT);
+
+    if (i == 0) {
+      A_nextseqnum = buffer[windowfirst].seqnum;  
+      starttimer(A, RTT);
+    }
   }
 }
+
+
 
 
 void A_init(void)
