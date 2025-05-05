@@ -46,6 +46,7 @@ void A_output(struct msg message)
 
     sendpkt.seqnum = A_nextseqnum;
     sendpkt.acknum = NOTINUSE;
+    
     for ( i=0; i<20 ; i++ )
       sendpkt.payload[i] = message.data[i];
     sendpkt.checksum = ComputeChecksum(sendpkt);
@@ -83,7 +84,6 @@ void A_input(struct pkt packet)
       int seqlast = buffer[windowlast].seqnum;
       if (((seqfirst <= seqlast) && (packet.acknum >= seqfirst && packet.acknum <= seqlast)) ||
           ((seqfirst > seqlast) && (packet.acknum >= seqfirst || packet.acknum <= seqlast))) {
-
         if (TRACE > 0)
           printf("----A: ACK %d is not a duplicate\n",packet.acknum);
         new_ACKs++;
@@ -97,7 +97,6 @@ void A_input(struct pkt packet)
 
         for (i=0; i<ackcount; i++)
           windowcount--;
-
         stoptimer(A);
         if (windowcount > 0)
           starttimer(A, RTT);
@@ -114,7 +113,6 @@ void A_timerinterrupt(void)
 
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
-
   for(i=0; i<windowcount; i++) {
     if (TRACE > 0)
       printf ("---A: resending packet %d\n", (buffer[(windowfirst+i) % WINDOWSIZE]).seqnum);
@@ -132,7 +130,6 @@ void A_init(void)
   windowlast = -1;
   windowcount = 0;
 }
-
 static int expectedseqnum;
 static int B_nextseqnum;
 
